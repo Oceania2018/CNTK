@@ -3254,6 +3254,12 @@ void CNTKToONNXHelper::CopyAttributes(const FunctionPtr& src, LotusIR::Node* nod
             axisIndex += src->Inputs()[0].DynamicAxes().size();
             node->AddAttribute(attributesMap[L"axis"], axisIndex);
         }
+        else if (src->OpName() == L"Softmax_onnx" || src->OpName() == L"LogSoftmax_onnx" || src->OpName() == L"Hardmax_onnx")
+        {
+            Axis axis = (Axis)(src->Attributes()[L"axis"].Value<Axis>());
+            int64_t axisIndex = ConvertAxisToOnnx(axis, src->Inputs()[0]);
+            node->AddAttribute(attributesMap[L"axis"], axisIndex);
+        }
         else if (src->OpName() == L"Times")
         {
             size_t outputRank = src->Attributes()[L"outputRank"].Value<size_t>();
