@@ -2786,11 +2786,25 @@ void CNTKToONNXHelper::ProcessInputs(const FunctionPtr& src,
         if (cntkOpName == "Reshape" && IsONNX1_2Supported())
         {
             // ONNX1.2 reshape node take shape as input instead of attribute. 
-            const std::vector<size_t>& shapeVec = src->Output().Shape().Dimensions();
+
+            // We can construct the shape input for onnx by two ways: 1. cntk node output shape, or 2. cntk node attribute "newShape".
+            // If there attribute "newShape" is missing, or attributes "beginAxis" and "endAxis" exists, we use cntk node output shape.
+            // such that we don't need to duplicate the shape inference logic here. 
+            // Otherwise we use the cntk node attribute "newShape". 
+            bool useOutputShape = [&]() {
+                if (!src->Attributes().Contains(L"newShape") || ((NDShape)src->Attributes()[L"newShape"].Value<NDShape>()).Rank() == 0)
+                    return true;
+                if (src->Attributes().Contains(L"beginAxis") && ((Axis)src->Attributes()[L"beginAxis"].Value<Axis>()).StaticAxisIndex() != 0)
+                    return true;
+                if (src->Attributes().Contains(L"endAxis") && ((Axis)src->Attributes()[L"endAxis"].Value<Axis>()).StaticAxisIndex() != src->Inputs()[0].Shape().Rank())
+                    return true;
+                return false;
+            }();
+            const NDShape shape = useOutputShape ? src->Output().Shape() : (NDShape)src->Attributes()[L"newShape"].Value<NDShape>();
 
             std::vector<int> newShapeVec;
             size_t numInferredDimensions(0);
-            for (const auto& axisSize : shapeVec)
+            for (const auto& axisSize : shape.Dimensions())
             {
                 if (axisSize == NDShape::InferredDimension)
                 {

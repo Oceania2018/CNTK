@@ -40,9 +40,8 @@ skip_model_names = [
 ]
 
 skip_round_trip_model_names = [
-    # these are skipped due to known issues with gemm and pooling. 
-    'mobilenetv2-1.0',
-    'squeezenet',
+    # Convolution Nan issue on Linux. 
+    'shufflenet',
 ]
 
 @pytest.mark.parametrize('model_name, round_trip', 
